@@ -30,6 +30,9 @@ else
 	MEMDISK_SIZE="6144"
 fi
 
+# Make room for backup in /tmp
+mount -t tmpfs tmpfs /tmp
+
 echo "==> Mount swap-based memdisk"
 mdmfs -s "${MEMDISK_SIZE}m" md /memdisk || exit 1
 dump -0f - /dev/md1.uzip | (cd /memdisk; restore -rf -)
