@@ -21,18 +21,24 @@ done
 
 echo "==> Mount cdrom"
 mount_cd9660 /dev/iso9660/FURYBSD /cdrom
-#mdmfs -P -F /cdrom/data/system.uzip -o ro md.uzip /sysroot
+mdmfs -P -F /cdrom/data/system.uzip -o ro md.uzip /sysroot
 
-#if [ "$SINGLE_USER" = "true" ]; then
-#	echo -n "Enter memdisk size used for read-write access in the live system: "
-#	read MEMDISK_SIZE
-#else
-#	MEMDISK_SIZE="1024"
-#fi
+if [ "$SINGLE_USER" = "true" ]; then
+	echo -n "Enter memdisk size used for read-write access in the live system: "
+	read MEMDISK_SIZE
+else
+	MEMDISK_SIZE="1024"
+fi
 
-#echo "==> Mount swap-based memdisk"
-#mdmfs -s "${MEMDISK_SIZE}m" md /memdisk || exit 1
-#mount -t unionfs /memdisk /sysroot
+echo "==> Mount swap-based memdisk"
+mdmfs -s "${MEMDISK_SIZE}m" md /memdisk || exit 1
+mount -t unionfs /memdisk /sysroot
+
+mount -t tmpfs tmpfs /dev/reroot
+cp /rescue/init /dev/reroot/init
+kenv vfs.root.mountfrom=ufs:/dev/md1
+kenv init_path="/dev/reroot/init"
+kenv -u init_script
 
 #mkdir -p /sysroot/media/cdrom
 #mount_nullfs -o ro /cdrom /sysroot/media/cdrom
