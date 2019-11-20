@@ -1,4 +1,3 @@
-root_rw_mount="NO"
 clear_tmp_enable="NO"
 hostname="furybsd"
 sendmail_enable="NONE"
