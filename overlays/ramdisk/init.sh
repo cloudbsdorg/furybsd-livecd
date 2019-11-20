@@ -27,16 +27,17 @@ if [ "$SINGLE_USER" = "true" ]; then
 	echo -n "Enter memdisk size used for read-write access in the live system: "
 	read MEMDISK_SIZE
 else
-	MEMDISK_SIZE="1024"
+	MEMDISK_SIZE="2048"
 fi
 
 echo "==> Mount swap-based memdisk"
 mdmfs -s "${MEMDISK_SIZE}m" md /memdisk || exit 1
-mount -t unionfs /memdisk /sysroot
+dump -0f - /dev/md1.uzip | (cd /memdisk; restore -rf -)
+# mount -t unionfs /memdisk /sysroot
 
 mount -t tmpfs tmpfs /dev/reroot
 cp /rescue/init /dev/reroot/init
-kenv vfs.root.mountfrom=ufs:/dev/md1
+kenv vfs.root.mountfrom=ufs:/dev/md2
 kenv init_path="/dev/reroot/init"
 kenv -u init_script
 
