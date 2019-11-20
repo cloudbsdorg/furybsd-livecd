@@ -27,7 +27,7 @@ if [ "$SINGLE_USER" = "true" ]; then
 	echo -n "Enter memdisk size used for read-write access in the live system: "
 	read MEMDISK_SIZE
 else
-	MEMDISK_SIZE="2048"
+	MEMDISK_SIZE="6144"
 fi
 
 echo "==> Mount swap-based memdisk"
