@@ -44,44 +44,33 @@ kenv vfs.root.mountfrom=ufs:/dev/md2
 kenv init_path="/dev/reroot/init"
 kenv -u init_script
 
-#mkdir -p /sysroot/media/cdrom
-#mount_nullfs -o ro /cdrom /sysroot/media/cdrom
+BOOTMODE=`sysctl -n machdep.bootmethod`
+export BOOTMODE
 
-#mount -t tmpfs tmpfs /sysroot/tmp
-#mount -t tmpfs tmpfs /sysroot/mnt
-#mount -t nullfs /sysroot/tmp /tmp
-#mount -t nullfs /sysroot/mnt /mnt
+if [ "${BOOTMODE}" = "BIOS" ]; then
+  echo "BIOS detected"
+  cp /memdisk/usr/home/liveuser/xorg.conf.d/driver-vesa.conf /memdisk/etc/X11/xorg.conf
+fi
 
-#echo "==> Mount devfs"
-#mount -t devfs devfs /sysroot/dev
+if [ "${BOOTMODE}" = "UEFI" ]; then
+  echo "UEFI detected"
+  cp /memdisk/usr/home/liveuser/xorg.conf.d/driver-scfb.conf /memdisk/etc/X11/xorg.conf
+fi
 
-#BOOTMODE=`sysctl -n machdep.bootmethod`
-#export BOOTMODE
+VMGUEST=`sysctl -n kern.vm_guest`
+export VMGUEST
 
-#if [ "${BOOTMODE}" = "BIOS" ]; then
-#  echo "BIOS detected"
-#  cp /sysroot/usr/home/liveuser/xorg.conf.d/driver-vesa.conf /sysroot/etc/X11/xorg.conf
-#fi
+if [ "${VMGUEST}" = "xen" ]; then
+  echo "XEN guest detected"
+  chroot /memdisk sysrc devd_enable="NO"
+fi
 
-#if [ "${BOOTMODE}" = "UEFI" ]; then
-#  echo "UEFI detected"
-#  cp /sysroot/usr/home/liveuser/xorg.conf.d/driver-scfb.conf /sysroot/etc/X11/xorg.conf
-#fi
+chroot memdisk sysrc -f /etc/rc.conf kld_list+="sysctlinfo"
 
-#VMGUEST=`sysctl -n kern.vm_guest`
-#export VMGUEST
-
-#if [ "${VMGUEST}" = "xen" ]; then
-#  echo "XEN guest detected"
-#  chroot /sysroot sysrc devd_enable="NO"
-#fi
-
-#chroot sysroot sysrc -f /etc/rc.conf kld_list+="sysctlinfo"
-
-#if [ "$SINGLE_USER" = "true" ]; then
+if [ "$SINGLE_USER" = "true" ]; then
 	echo "Starting interactive shell in temporary rootfs ..."
 	sh
-#fi
+fi
 
 kenv init_shell="/rescue/sh"
 exit 0
