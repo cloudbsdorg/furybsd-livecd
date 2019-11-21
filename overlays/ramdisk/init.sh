@@ -72,5 +72,4 @@ if [ "$SINGLE_USER" = "true" ]; then
 	sh
 fi
 
-kenv init_shell="/rescue/sh"
-exit 0
+reboot -r
