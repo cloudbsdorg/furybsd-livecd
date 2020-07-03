@@ -11,7 +11,7 @@ echo "==> Remount rootfs as read-write"
 mount -u -w /
 
 echo "==> Make mountpoints"
-mkdir -p /cdrom /dists /memdisk /memusr /mnt /sysroot /usr /tmp
+mkdir -p /cdrom /usr/dists /memdisk /memusr /mnt /sysroot /usr /tmp
 
 echo "==> Waiting for FURYBSD media to initialize"
 while : ; do
@@ -29,7 +29,7 @@ else
 fi
 
 if [ -f "/cdrom/data/dists.uzip" ] ; then
-  mdmfs -P -F /cdrom/data/dists.uzip -o ro md.uzip /dists
+  mdmfs -P -F /cdrom/data/dists.uzip -o ro md.uzip /usr/dists
 fi
 
 # Make room for backup in /tmp
@@ -45,9 +45,12 @@ if [ -d "/sysroot" ] ; then
   kenv init_script="/init-reroot.sh"
 fi
 
-if [ -f "/dists/base.txz" ] ; then
-  cd dists && tar -xf base.txz -C /memdisk
-  cd dists && tar -xf kernel.txz -C /memdisk
+if [ -f "/usr/dists/base.txz" ] ; then
+  echo "==> Extracting kernel.txz"
+  cd /usr/dists && tar -xf kernel.txz -C /memdisk
+  echo "==> Extracting base.txz"
+  cd /usr/dists && tar -xf base.txz -C /memdisk
+  cp /etc/fstab /memdisk/etc/
   kenv vfs.root.mountfrom=ufs:/dev/md2
   kenv -u init_script
 fi

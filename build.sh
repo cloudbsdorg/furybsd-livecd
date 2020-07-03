@@ -302,7 +302,8 @@ ramdisk()
 {
   cp -R ${cwd}/overlays/ramdisk/ ${ramdisk_root}
   cd "${uzip}" && tar -cf - rescue | tar -xf - -C "${ramdisk_root}"
-  touch "${ramdisk_root}/etc/fstab"
+  # touch "${ramdisk_root}/etc/fstab"
+  cp ${cwd}/fstab ${ramdisk_root}/etc
   cp ${uzip}/etc/login.conf ${ramdisk_root}/etc/login.conf
   makefs -b '10%' "${cdroot}/data/ramdisk.ufs" "${ramdisk_root}"
   gzip "${cdroot}/data/ramdisk.ufs"
