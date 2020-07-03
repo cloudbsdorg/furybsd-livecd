@@ -26,6 +26,7 @@ if [ -f "/cdrom/data/system.uzip" ] ; then
   mdmfs -P -F /cdrom/data/system.uzip -o ro md.uzip /sysroot
 else
   rm -rf /sysroot
+  rm -rf /memusr
 fi
 
 if [ -f "/cdrom/data/dists.uzip" ] ; then
