@@ -20,7 +20,7 @@ xinit
 setxkbmap
 xdg-user-dirs
 xdg-utils
-firefox
+firefox-esr
 doas
 nginx
 phpsysinfo
