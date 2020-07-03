@@ -13,9 +13,9 @@ mount -u -w /
 echo "==> Make mountpoints"
 mkdir -p /cdrom /memdisk /memusr /mnt /sysroot /usr /tmp
 
-echo "Waiting for FURYBSD media to initialize"
+echo "==> Waiting for FURYBSD media to initialize"
 while : ; do
-    [ -e "/dev/iso9660/FURYBSD" ] && echo "found /dev/iso9660/FURYBSD" && break
+    [ -e "/dev/iso9660/FURYBSD" ] && echo "==> Found /dev/iso9660/FURYBSD" && break
     sleep 1
 done
 
@@ -27,7 +27,7 @@ mdmfs -P -F /cdrom/data/system.uzip -o ro md.uzip /sysroot
 mount -t tmpfs tmpfs /tmp
 
 echo "==> Mount swap-based memdisk"
-mdmfs -s 1024m md /memdisk || exit 1
+mdmfs -s 2048m md /memdisk || exit 1
 dump -0f - /dev/md1.uzip | (cd /memdisk; restore -rf -)
 rm /memdisk/restoresymtable
 

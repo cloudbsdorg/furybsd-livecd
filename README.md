@@ -98,7 +98,7 @@ edit settings/rc.conf.xfce
 ```
 
 ## Build a new release 
-Generate an ISO with XFCE:
+Generate a core ISO with no xorg:
 ```
 ./build.sh
 ```
@@ -110,6 +110,11 @@ Generate an ISO with KDE Plasma 5:
 ```
 ./build.sh kde
 ```
+Generate an ISO with XFCE:
+```
+./build.sh xfce
+```
+
 
 ## Burn
 

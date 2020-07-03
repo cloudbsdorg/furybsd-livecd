@@ -48,9 +48,13 @@ case $desktop in
     export desktop="gnome"
     export edition="GNOME"
     ;;
-  *)
+  'xfce')
     export desktop="xfce"
     export edition="XFCE"
+    ;;
+  *)
+    export desktop="core"
+    export edition="CORE"
     ;;
 esac
 
@@ -116,11 +120,11 @@ poudriere_bulk()
 poudriere_image()
 {
   poudriere image -t tar -j furybsd -p furybsd-ports -h furybsd -n furybsd -f settings/ports.${desktop}
+  tar -xf /data/images/furybsd.txz -C ${uzip}  
 }
 
 packages()
 {
-  tar -xf /data/images/furybsd.txz -C ${uzip}
   cp /etc/resolv.conf ${uzip}/etc/resolv.conf
   mkdir ${uzip}/var/cache/pkg
   mount_nullfs ${packages} ${uzip}/var/cache/pkg
@@ -223,10 +227,12 @@ dm()
     'gnome')
       cp ${cwd}/custom.conf ${uzip}/usr/local/etc/gdm/custom.conf
       ;;
-    *)
+    'xfce')
       cp ${cwd}/lightdm.conf ${uzip}/usr/local/etc/lightdm/
       chroot ${uzip} sed -i '' -e 's/memorylocked=128M/memorylocked=256M/' /etc/login.conf
       chroot ${uzip} cap_mkdb /etc/login.conf
+      ;;
+    *)
       ;;
   esac
 }
@@ -241,15 +247,23 @@ installed-settings()
   cp -R ${cache}/furybsd-common-settings/etc/* ${uzip}/usr/local/etc/
 }
 
-uzip() 
+cdroot()
 {
   cp -R ${cwd}/overlays/uzip/ ${uzip}
   install -o root -g wheel -m 755 -d "${cdroot}"
+}
+
+uzip_usr()
+{
   makefs "${cdroot}/data/usr.ufs" "${uzip}/usr"
   mkuzip -o "${cdroot}/data/usr.uzip" "${cdroot}/data/usr.ufs"
   rm -f "${cdroot}/data/usr.ufs"
   chflags -R noschg ${uzip}/usr
   rm -rf ${uzip}/usr
+}
+
+uzip_system() 
+{
   makefs "${cdroot}/data/system.ufs" "${uzip}"
   mkuzip -o "${cdroot}/data/system.uzip" "${cdroot}/data/system.ufs"
   rm -f "${cdroot}/data/system.ufs"
@@ -288,22 +302,87 @@ cleanup()
   fi
 }
 
-workspace
-poudriere_jail
-poudriere_ports
-poudriere_bulk
-poudriere_image
-packages
-rc
-repos
-opt
-skel
-user
-live-settings
-installed-settings
-dm
-uzip
-ramdisk
-boot
-image
-cleanup
+case $desktop in
+  'kde')
+    workspace
+    poudriere_jail
+    poudriere_ports
+    poudriere_bulk
+    poudriere_image
+    packages
+    rc
+    repos
+    opt
+    skel
+    user
+    live-settings
+    installed-settings
+    dm
+    cdroot
+    uzip_usr
+    uzip_system
+    ramdisk
+    boot
+    image
+    cleanup
+    ;;
+  'gnome')
+    workspace
+    poudriere_jail
+    poudriere_ports
+    poudriere_bulk
+    poudriere_image
+    packages
+    rc
+    repos
+    opt
+    skel
+    user
+    live-settings
+    installed-settings
+    dm
+    cdroot
+    uzip_usr
+    uzip_system
+    ramdisk
+    boot
+    image
+    cleanup
+    ;;
+  'xfce')
+    workspace
+    poudriere_jail
+    poudriere_ports
+    poudriere_bulk
+    poudriere_image
+    packages
+    rc
+    repos
+    opt
+    skel
+    user
+    live-settings
+    installed-settings
+    dm
+    cdroot
+    uzip_usr
+    uzip_system
+    ramdisk
+    boot
+    image
+    cleanup
+    ;;
+  *)
+    workspace
+    poudriere_jail
+    poudriere_ports
+    poudriere_bulk
+    poudriere_image
+    cdroot
+    uzip_system
+    ramdisk
+    boot
+    image
+    cleanup
+    ;;
+esac
