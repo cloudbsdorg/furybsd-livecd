@@ -304,6 +304,7 @@ ramdisk()
   cd "${uzip}" && tar -cf - rescue | tar -xf - -C "${ramdisk_root}"
   # touch "${ramdisk_root}/etc/fstab"
   cp ${cwd}/fstab ${ramdisk_root}/etc
+  cp ${cwd}/init-reroot.sh ${ramdisk_root}/init-reroot.sh
   cp ${uzip}/etc/login.conf ${ramdisk_root}/etc/login.conf
   makefs -b '10%' "${cdroot}/data/ramdisk.ufs" "${ramdisk_root}"
   gzip "${cdroot}/data/ramdisk.ufs"

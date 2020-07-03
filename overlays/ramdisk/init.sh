@@ -51,8 +51,10 @@ if [ -f "/usr/dists/base.txz" ] ; then
   echo "==> Extracting base.txz"
   cd /usr/dists && tar -xf base.txz -C /memdisk
   cp /etc/fstab /memdisk/etc/
+  cp /init-reroot.sh /memdisk
   kenv vfs.root.mountfrom=ufs:/dev/md2
-  kenv -u init_script
+  kenv init_script="/init-reroot.sh"
+  #kenv -u init_script
 fi
 
 if [ "$SINGLE_USER" = "true" ]; then
