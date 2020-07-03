@@ -320,6 +320,15 @@ boot()
   done
 }
 
+boot_core()
+{
+  cp -R ${cwd}/overlays/core/ ${cdroot}
+  cd "${uzip}" && tar -cf - --exclude boot/kernel boot | tar -xf - -C "${cdroot}"
+  for kfile in kernel geom_uzip.ko nullfs.ko tmpfs.ko xz.ko; do
+  tar -cf - boot/kernel/${kfile} | tar -xf - -C "${cdroot}"
+  done
+}
+
 image() 
 {
   sh ${cwd}/scripts/mkisoimages.sh -b $label $isopath ${cdroot}
@@ -406,11 +415,9 @@ case $desktop in
   *)
     workspace
     base
-    #cdroot
-    #uzip_system
     dists
     ramdisk
-    boot
+    boot_core
     image
     cleanup
     ;;
