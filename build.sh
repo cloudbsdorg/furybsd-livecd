@@ -9,6 +9,7 @@ workdir="/usr/local"
 livecd="${workdir}/furybsd"
 cache="${livecd}/cache"
 arch=AMD64
+base="${cache}/${version}/base"
 packages="${cache}/packages"
 ports="${cache}/furybsd-ports-master"
 iso="${livecd}/iso"
@@ -18,6 +19,10 @@ ramdisk_root="${cdroot}/data/ramdisk"
 vol="furybsd"
 label="FURYBSD"
 isopath="${iso}/${vol}.iso"
+export DISTRIBUTIONS="kernel.txz base.txz"
+export BSDINSTALL_DISTSITE="http://ftp.freebsd.org/pub/FreeBSD/releases/amd64/12.1-RELEASE/"
+export BSDINSTALL_CHROOT="/usr/local/furybsd/uzip"
+export BSDINSTALL_DISTDIR="/usr/local/furybsd/cache/12.1/base"
 
 # Only run as superuser
 if [ "$(id -u)" != "0" ]; then
@@ -83,7 +88,23 @@ workspace()
     chflags -R noschg ${uzip} ${cdroot} >/dev/null 2>/dev/null
     rm -rf ${uzip} ${cdroot} ${ports} >/dev/null 2>/dev/null
   fi
-  mkdir -p ${livecd} ${iso} ${packages} ${uzip} ${ramdisk_root}/dev ${ramdisk_root}/etc >/dev/null 2>/dev/null
+  mkdir -p ${livecd} ${base} ${iso} ${packages} ${uzip} ${ramdisk_root}/dev ${ramdisk_root}/etc >/dev/null 2>/dev/null
+}
+
+base()
+{
+  if [ ! -f "${base}/base.txz" ] ; then 
+    bsdinstall distfetch
+  fi
+  
+  if [ ! -f "${base}/kernel.txz" ] ; then
+    cd ${base}
+    bsdinstall distfetch
+  fi
+  bsdinstall distextract
+#  cp /etc/resolv.conf ${uzip}/etc/resolv.conf
+#  chroot ${uzip} env PAGER=cat freebsd-update fetch --not-running-from-cron
+#  chroot ${uzip} freebsd-update install
 }
 
 poudriere_jail()
@@ -269,6 +290,14 @@ uzip_system()
   rm -f "${cdroot}/data/system.ufs"
 }
 
+dists()
+{
+  mkdir -p ${cdroot}/data
+  makefs "${cdroot}/data/dists.ufs" ${base}
+  mkuzip -o "${cdroot}/data/dists.uzip" "${cdroot}/data/dists.ufs"
+  rm -f "${cdroot}/data/dists.ufs"
+}
+
 ramdisk() 
 {
   cp -R ${cwd}/overlays/ramdisk/ ${ramdisk_root}
@@ -374,12 +403,10 @@ case $desktop in
     ;;
   *)
     workspace
-    poudriere_jail
-    poudriere_ports
-    poudriere_bulk
-    poudriere_image
-    cdroot
-    uzip_system
+    base
+    #cdroot
+    #uzip_system
+    dists
     ramdisk
     boot
     image

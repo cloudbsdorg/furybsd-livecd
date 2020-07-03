@@ -11,7 +11,7 @@ echo "==> Remount rootfs as read-write"
 mount -u -w /
 
 echo "==> Make mountpoints"
-mkdir -p /cdrom /memdisk /memusr /mnt /sysroot /usr /tmp
+mkdir -p /cdrom /dists /memdisk /memusr /mnt /sysroot /usr /tmp
 
 echo "==> Waiting for FURYBSD media to initialize"
 while : ; do
@@ -21,18 +21,36 @@ done
 
 echo "==> Mount cdrom"
 mount_cd9660 /dev/iso9660/FURYBSD /cdrom
-mdmfs -P -F /cdrom/data/system.uzip -o ro md.uzip /sysroot
+
+if [ -f "/cdrom/data/system.uzip" ] ; then
+  mdmfs -P -F /cdrom/data/system.uzip -o ro md.uzip /sysroot
+else
+  rm -rf /sysroot
+fi
+
+if [ -f "/cdrom/data/dists.uzip" ] ; then
+  mdmfs -P -F /cdrom/data/dists.uzip -o ro md.uzip /dists
+fi
 
 # Make room for backup in /tmp
 mount -t tmpfs tmpfs /tmp
 
 echo "==> Mount swap-based memdisk"
 mdmfs -s 2048m md /memdisk || exit 1
-dump -0f - /dev/md1.uzip | (cd /memdisk; restore -rf -)
-rm /memdisk/restoresymtable
 
-kenv vfs.root.mountfrom=ufs:/dev/md2
-kenv init_script="/init-reroot.sh"
+if [ -d "/sysroot" ] ; then
+  dump -0f - /dev/md1.uzip | (cd /memdisk; restore -rf -)
+  rm /memdisk/restoresymtable
+  kenv vfs.root.mountfrom=ufs:/dev/md2
+  kenv init_script="/init-reroot.sh"
+fi
+
+if [ -f "/dists/base.txz" ] ; then
+  cd dists && tar -xf base.txz -C /memdisk
+  cd dists && tar -xf kernel.txz -C /memdisk
+  kenv vfs.root.mountfrom=ufs:/dev/md2
+  kenv -u init_script
+fi
 
 if [ "$SINGLE_USER" = "true" ]; then
 	echo "Starting interactive shell in temporary rootfs ..."
