@@ -10,6 +10,8 @@ if [ -f "/cdrom/data/usr.uzip" ] ; then
   mdmfs -s 512m md /union >/dev/null 2>/dev/null
   mount -t unionfs /union /usr >/dev/null 2>/dev/null
 fi
+mdconfig -du md0
+mdconfig -du md1
 
 if [ -d "/opt/local/bin" ] ; then
   /opt/local/bin/furybsd-init-helper
