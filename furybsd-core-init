@@ -1,0 +1,10 @@
+#!/bin/sh
+
+echo "==> Create swap-based memdisk"
+mdmfs -s 2048m md /mnt
+
+echo "==> Restore uzip to memdisk"
+dump -0f - /dev/md0.uzip | (cd /mnt; restore -rf -)
+
+echo "==> Rerooting to memdisk"
+kenv vfs.root.mountfrom=ufs:/dev/md0
