@@ -9,6 +9,7 @@ workdir="/usr/local"
 livecd="${workdir}/furybsd"
 cache="${livecd}/cache"
 arch=AMD64
+base="${cache}/${version}/base"
 packages="${cache}/packages"
 ports="${cache}/furybsd-ports-master"
 iso="${livecd}/iso"
@@ -18,6 +19,10 @@ ramdisk_root="${cdroot}/data/ramdisk"
 vol="furybsd"
 label="FURYBSD"
 isopath="${iso}/${vol}.iso"
+export DISTRIBUTIONS="kernel.txz base.txz"
+export BSDINSTALL_DISTSITE="http://ftp.freebsd.org/pub/FreeBSD/releases/amd64/12.1-RELEASE/"
+export BSDINSTALL_CHROOT="/usr/local/furybsd/uzip"
+export BSDINSTALL_DISTDIR="/usr/local/furybsd/cache/12.1/base"
 
 # Only run as superuser
 if [ "$(id -u)" != "0" ]; then
@@ -48,9 +53,13 @@ case $desktop in
     export desktop="gnome"
     export edition="GNOME"
     ;;
-  *)
+  'xfce')
     export desktop="xfce"
     export edition="XFCE"
+    ;;
+  *)
+    export desktop="core"
+    export edition="CORE"
     ;;
 esac
 
@@ -79,7 +88,23 @@ workspace()
     chflags -R noschg ${uzip} ${cdroot} >/dev/null 2>/dev/null
     rm -rf ${uzip} ${cdroot} ${ports} >/dev/null 2>/dev/null
   fi
-  mkdir -p ${livecd} ${iso} ${packages} ${uzip} ${ramdisk_root}/dev ${ramdisk_root}/etc >/dev/null 2>/dev/null
+  mkdir -p ${livecd} ${base} ${iso} ${packages} ${uzip} ${ramdisk_root}/dev ${ramdisk_root}/etc >/dev/null 2>/dev/null
+}
+
+base()
+{
+  if [ ! -f "${base}/base.txz" ] ; then 
+    bsdinstall distfetch
+  fi
+  
+  if [ ! -f "${base}/kernel.txz" ] ; then
+    cd ${base}
+    bsdinstall distfetch
+  fi
+  bsdinstall distextract
+#  cp /etc/resolv.conf ${uzip}/etc/resolv.conf
+#  chroot ${uzip} env PAGER=cat freebsd-update fetch --not-running-from-cron
+#  chroot ${uzip} freebsd-update install
 }
 
 poudriere_jail()
@@ -116,11 +141,11 @@ poudriere_bulk()
 poudriere_image()
 {
   poudriere image -t tar -j furybsd -p furybsd-ports -h furybsd -n furybsd -f settings/ports.${desktop}
+  tar -xf /data/images/furybsd.txz -C ${uzip}  
 }
 
 packages()
 {
-  tar -xf /data/images/furybsd.txz -C ${uzip}
   cp /etc/resolv.conf ${uzip}/etc/resolv.conf
   mkdir ${uzip}/var/cache/pkg
   mount_nullfs ${packages} ${uzip}/var/cache/pkg
@@ -223,10 +248,12 @@ dm()
     'gnome')
       cp ${cwd}/custom.conf ${uzip}/usr/local/etc/gdm/custom.conf
       ;;
-    *)
+    'xfce')
       cp ${cwd}/lightdm.conf ${uzip}/usr/local/etc/lightdm/
       chroot ${uzip} sed -i '' -e 's/memorylocked=128M/memorylocked=256M/' /etc/login.conf
       chroot ${uzip} cap_mkdb /etc/login.conf
+      ;;
+    *)
       ;;
   esac
 }
@@ -241,25 +268,43 @@ installed-settings()
   cp -R ${cache}/furybsd-common-settings/etc/* ${uzip}/usr/local/etc/
 }
 
-uzip() 
+cdroot()
 {
   cp -R ${cwd}/overlays/uzip/ ${uzip}
   install -o root -g wheel -m 755 -d "${cdroot}"
+}
+
+uzip_usr()
+{
   makefs "${cdroot}/data/usr.ufs" "${uzip}/usr"
   mkuzip -o "${cdroot}/data/usr.uzip" "${cdroot}/data/usr.ufs"
   rm -f "${cdroot}/data/usr.ufs"
   chflags -R noschg ${uzip}/usr
   rm -rf ${uzip}/usr
+}
+
+uzip_system() 
+{
   makefs "${cdroot}/data/system.ufs" "${uzip}"
   mkuzip -o "${cdroot}/data/system.uzip" "${cdroot}/data/system.ufs"
   rm -f "${cdroot}/data/system.ufs"
+}
+
+dists()
+{
+  mkdir -p ${cdroot}/data
+  makefs "${cdroot}/data/dists.ufs" ${base}
+  mkuzip -o "${cdroot}/data/dists.uzip" "${cdroot}/data/dists.ufs"
+  rm -f "${cdroot}/data/dists.ufs"
 }
 
 ramdisk() 
 {
   cp -R ${cwd}/overlays/ramdisk/ ${ramdisk_root}
   cd "${uzip}" && tar -cf - rescue | tar -xf - -C "${ramdisk_root}"
-  touch "${ramdisk_root}/etc/fstab"
+  # touch "${ramdisk_root}/etc/fstab"
+  cp ${cwd}/fstab ${ramdisk_root}/etc
+  cp ${cwd}/init-reroot.sh ${ramdisk_root}/init-reroot.sh
   cp ${uzip}/etc/login.conf ${ramdisk_root}/etc/login.conf
   makefs -b '10%' "${cdroot}/data/ramdisk.ufs" "${ramdisk_root}"
   gzip "${cdroot}/data/ramdisk.ufs"
@@ -271,6 +316,15 @@ boot()
   cp -R ${cwd}/overlays/boot/ ${cdroot}
   cd "${uzip}" && tar -cf - --exclude boot/kernel boot | tar -xf - -C "${cdroot}"
   for kfile in kernel geom_uzip.ko nullfs.ko tmpfs.ko unionfs.ko xz.ko; do
+  tar -cf - boot/kernel/${kfile} | tar -xf - -C "${cdroot}"
+  done
+}
+
+boot_core()
+{
+  cp -R ${cwd}/overlays/core/ ${cdroot}
+  cd "${uzip}" && tar -cf - --exclude boot/kernel boot | tar -xf - -C "${cdroot}"
+  for kfile in kernel geom_uzip.ko nullfs.ko tmpfs.ko xz.ko; do
   tar -cf - boot/kernel/${kfile} | tar -xf - -C "${cdroot}"
   done
 }
@@ -288,22 +342,83 @@ cleanup()
   fi
 }
 
-workspace
-poudriere_jail
-poudriere_ports
-poudriere_bulk
-poudriere_image
-packages
-rc
-repos
-opt
-skel
-user
-live-settings
-installed-settings
-dm
-uzip
-ramdisk
-boot
-image
-cleanup
+case $desktop in
+  'kde')
+    workspace
+    poudriere_jail
+    poudriere_ports
+    poudriere_bulk
+    poudriere_image
+    packages
+    rc
+    repos
+    opt
+    skel
+    user
+    live-settings
+    installed-settings
+    dm
+    cdroot
+    uzip_usr
+    uzip_system
+    ramdisk
+    boot
+    image
+    cleanup
+    ;;
+  'gnome')
+    workspace
+    poudriere_jail
+    poudriere_ports
+    poudriere_bulk
+    poudriere_image
+    packages
+    rc
+    repos
+    opt
+    skel
+    user
+    live-settings
+    installed-settings
+    dm
+    cdroot
+    uzip_usr
+    uzip_system
+    ramdisk
+    boot
+    image
+    cleanup
+    ;;
+  'xfce')
+    workspace
+    poudriere_jail
+    poudriere_ports
+    poudriere_bulk
+    poudriere_image
+    packages
+    rc
+    repos
+    opt
+    skel
+    user
+    live-settings
+    installed-settings
+    dm
+    cdroot
+    uzip_usr
+    uzip_system
+    ramdisk
+    boot
+    image
+    cleanup
+    ;;
+  *)
+    workspace
+    base
+    dists
+    ramdisk
+    boot_core
+    image
+    cleanup
+    ;;
+esac
