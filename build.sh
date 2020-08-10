@@ -219,6 +219,12 @@ opt()
   cp ${cache}/furybsd-wifi-tool/bin/* ${uzip}/opt/local/bin/
 }
 
+opt_core()
+{
+  mkdir -p ${uzip}/opt/local/bin
+  cp ${cwd}/furybsd-core-init ${uzip}/opt/local/bin/
+}
+
 user()
 {
   mkdir -p ${uzip}/usr/home/liveuser/Desktop
@@ -334,6 +340,11 @@ image()
   sh ${cwd}/scripts/mkisoimages.sh -b $label $isopath ${cdroot}
 }
 
+image_core()
+{
+  sh /usr/src/release/amd64/mkisoimages.sh -b ${label} ${isopath} ${uzip}
+}
+
 cleanup()
 {
   if [ -d "${livecd}" ] ; then
@@ -415,10 +426,12 @@ case $desktop in
   *)
     workspace
     base
-    dists
-    ramdisk
-    boot_core
-    image
-    cleanup
+    #dists
+    #ramdisk
+    #boot_core
+    #image
+    opt_core
+    image_core
+    #cleanup
     ;;
 esac
